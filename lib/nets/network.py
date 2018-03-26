@@ -370,6 +370,7 @@ class Network(nn.Module):
     if self._mode == 'TRAIN':
       torch.backends.cudnn.benchmark = True # benchmark because now the input size are fixed
     fc7 = self._head_to_tail(pool5)
+    self.fc7 = fc7
 
     cls_prob, bbox_pred = self._region_classification(fc7)
     
@@ -423,14 +424,18 @@ class Network(nn.Module):
     return feat
 
   # only useful during testing mode
-  def test_image(self, image, im_info):
+  def test_image(self, image, im_info, iffc7=False):
     self.eval()
     self.forward(image, im_info, None, mode='TEST')
     cls_score, cls_prob, bbox_pred, rois = self._predictions["cls_score"].data.cpu().numpy(), \
                                                      self._predictions['cls_prob'].data.cpu().numpy(), \
                                                      self._predictions['bbox_pred'].data.cpu().numpy(), \
                                                      self._predictions['rois'].data.cpu().numpy()
-    return cls_score, cls_prob, bbox_pred, rois
+
+    if iffc7:
+      return cls_score, cls_prob, bbox_pred, rois, self.fc7
+    else:
+      return cls_score, cls_prob, bbox_pred, rois
 
   def delete_intermediate_states(self):
     # Delete intermediate result to save memory
